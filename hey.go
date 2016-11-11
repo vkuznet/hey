@@ -26,7 +26,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/rakyll/hey/requester"
+	//     "github.com/rakyll/hey/requester"
+	// TMP change to pick up changes from my repository instead of official one
+	"github.com/vkuznet/hey/requester"
 )
 
 const (
