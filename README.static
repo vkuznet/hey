@@ -1,0 +1,17 @@
+To statically compile package hey we need the following:
+
+```
+export GO_EXTLINK_ENABLED=0
+export CGO_ENABLED=0
+
+go build --ldflags '-extldflags "-static"'
+```
+
+otherwise go build will produce dynamically linked executable.
+This is due to non-GO implmentation of net/http package used in hey.
+
+References
+----------
+
+http://matthewkwilliams.com/index.php/2014/09/28/go-executables-are-statically-linked-except-when-they-are-not/
+http://blog.hashbangbash.com/2014/04/linking-golang-statically/
