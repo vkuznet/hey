@@ -16,6 +16,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -57,6 +58,7 @@ var (
 	contentType = flag.String("T", "text/html", "")
 	authHeader  = flag.String("a", "", "")
 	hostHeader  = flag.String("host", "", "")
+	urlsFile    = flag.String("U", "", "")
 
 	output = flag.String("o", "", "")
 
@@ -98,6 +100,7 @@ Options:
   -a  Basic authentication, username:password.
   -x  HTTP Proxy address as host:port.
   -h2 Enable HTTP/2.
+  -U  Read URLs from a file, e.g ./urls.txt
 
   -host	HTTP Host header.
 
@@ -110,6 +113,23 @@ Options:
                         response timings.
 `
 
+func request(method, url string, header http.Header, username, password, hostHeader string) *http.Request {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		usageAndExit(err.Error())
+	}
+	req.Header = header
+	if username != "" || password != "" {
+		req.SetBasicAuth(username, password)
+	}
+
+	// set host header if set
+	if hostHeader != "" {
+		req.Host = hostHeader
+	}
+	return req
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(usage, runtime.NumCPU()))
@@ -118,7 +138,7 @@ func main() {
 	flag.Var(&headerslice, "H", "")
 
 	flag.Parse()
-	if flag.NArg() < 1 {
+	if flag.NArg() < 1 && *urlsFile == "" {
 		usageAndExit("")
 	}
 
@@ -135,7 +155,10 @@ func main() {
 		usageAndExit("-n cannot be less than -c.")
 	}
 
-	url := flag.Args()[0]
+	var url string
+	if *urlsFile == "" {
+		url = flag.Args()[0]
+	}
 	method := strings.ToUpper(*m)
 
 	// set content-type
@@ -179,6 +202,18 @@ func main() {
 		}
 		bodyAll = slurp
 	}
+	var urls []string
+	if *urlsFile != "" {
+		file, err := os.Open(*urlsFile)
+		if err != nil {
+			errAndExit(err.Error())
+		}
+		scanner := bufio.NewScanner(file)
+		defer file.Close()
+		for scanner.Scan() {
+			urls = append(urls, scanner.Text())
+		}
+	}
 
 	if *output != "csv" && *output != "" {
 		usageAndExit("Invalid output type; only csv is supported.")
@@ -192,23 +227,19 @@ func main() {
 			usageAndExit(err.Error())
 		}
 	}
-
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		usageAndExit(err.Error())
-	}
-	req.Header = header
-	if username != "" || password != "" {
-		req.SetBasicAuth(username, password)
-	}
-
-	// set host header if set
-	if *hostHeader != "" {
-		req.Host = *hostHeader
+	var requests []*http.Request
+	if len(urls) > 0 {
+		for _, url := range urls {
+			req := request(method, url, header, username, password, *hostHeader)
+			requests = append(requests, req)
+		}
+	} else {
+		req := request(method, url, header, username, password, *hostHeader)
+		requests = append(requests, req)
 	}
 
 	(&requester.Work{
-		Request:            req,
+		Requests:           requests,
 		RequestBody:        bodyAll,
 		N:                  num,
 		C:                  conc,

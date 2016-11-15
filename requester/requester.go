@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -78,7 +79,8 @@ type result struct {
 
 type Work struct {
 	// Request is the request to be made.
-	Request *http.Request
+	//     Request *http.Request
+	Requests []*http.Request
 
 	RequestBody []byte
 
@@ -117,6 +119,13 @@ type Work struct {
 	results chan *result
 }
 
+func (b *Work) getRequest() *http.Request {
+	// randomly return request
+	req := b.Requests[rand.Intn(len(b.Requests))]
+	//     fmt.Println("URL", req.URL)
+	return req
+}
+
 // displayProgress outputs the displays until stopCh returns a value.
 func (b *Work) displayProgress(stopCh chan struct{}) {
 	if b.Output != "" {
@@ -142,7 +151,7 @@ func (b *Work) displayProgress(stopCh chan struct{}) {
 // all work is done.
 func (b *Work) Run() {
 	// append hey's user agent
-	ua := b.Request.UserAgent()
+	ua := b.getRequest().UserAgent()
 	if ua == "" {
 		ua = heyUA
 	} else {
@@ -182,7 +191,7 @@ func (b *Work) makeRequest(c *http.Client) {
 	var code int
 	var dnsStart, connStart, resStart, reqStart, delayStart time.Time
 	var dnsDuration, connDuration, resDuration, reqDuration, delayDuration time.Duration
-	req := cloneRequest(b.Request, b.RequestBody)
+	req := cloneRequest(b.getRequest(), b.RequestBody)
 	if b.EnableTrace {
 		trace := &httptrace.ClientTrace{
 			DNSStart: func(info httptrace.DNSStartInfo) {
