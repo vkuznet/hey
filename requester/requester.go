@@ -34,6 +34,9 @@ import (
 	"golang.org/x/net/http2"
 )
 
+// globals
+var nRequest int
+
 // Return client X509 certificates
 func Certs() (tls_certs []tls.Certificate) {
 	uproxy := os.Getenv("X509_USER_PROXY")
@@ -115,6 +118,9 @@ type Work struct {
 	// ProxyAddr is the address of HTTP proxy server in the format on "host:port".
 	// Optional.
 	ProxyAddr *url.URL
+
+	// firstN will force a dump of first N requests
+	FirstN int
 
 	results chan *result
 }
@@ -222,7 +228,14 @@ func (b *Work) makeRequest(c *http.Client) {
 	if err == nil {
 		size = resp.ContentLength
 		code = resp.StatusCode
-		io.Copy(ioutil.Discard, resp.Body)
+		if nRequest < b.FirstN {
+			fmt.Printf("%d-th request : %v\n", nRequest, req.URL)
+			body, err := ioutil.ReadAll(resp.Body)
+			fmt.Printf("%d-th response: %v %v\n", nRequest, string(body[:]), err)
+			nRequest += 1
+		} else {
+			io.Copy(ioutil.Discard, resp.Body)
+		}
 		resp.Body.Close()
 	}
 	t := time.Now()

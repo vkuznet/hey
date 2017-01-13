@@ -62,10 +62,11 @@ var (
 
 	output = flag.String("o", "", "")
 
-	c = flag.Int("c", 50, "")
-	n = flag.Int("n", 200, "")
-	q = flag.Int("q", 0, "")
-	t = flag.Int("t", 20, "")
+	c      = flag.Int("c", 50, "")
+	n      = flag.Int("n", 200, "")
+	q      = flag.Int("q", 0, "")
+	t      = flag.Int("t", 20, "")
+	firstN = flag.Int("N", 0, "")
 
 	h2 = flag.Bool("h2", false, "")
 
@@ -101,6 +102,7 @@ Options:
   -x  HTTP Proxy address as host:port.
   -h2 Enable HTTP/2.
   -U  Read URLs from a file, e.g ./urls.txt
+  -N  Printout first N requests
 
   -host	HTTP Host header.
 
@@ -251,6 +253,7 @@ func main() {
 		ProxyAddr:          proxyURL,
 		Output:             *output,
 		EnableTrace:        *enableTrace,
+		FirstN:             *firstN,
 	}).Run()
 }
 
