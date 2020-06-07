@@ -1,5 +1,5 @@
-GOPATH:=$(PWD):${GOPATH}
-export GOPATH
+#GOPATH:=$(PWD):${GOPATH}
+#export GOPATH
 export GO_EXTLINK_ENABLED=0
 export CGO_ENABLED=0
 
